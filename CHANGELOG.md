@@ -1,6 +1,10 @@
 # VRFBackupTool.py #
 ---
 
+## VRFBackupTool v0.0.3-alpha (2013-08-20) ##
+* Adjusted output spacing (removing/moving 'print' statements)
+* Added additional comments to code, configFile, routerFile.
+
 ## VRFBackupTool v0.0.2-alpha (2013-08-16) ##
 * Corrected bad REGEX being applied to routeDistinguisher that incorrectly
   caused the function to grab ALL SMVPN profiles instead of the only matching

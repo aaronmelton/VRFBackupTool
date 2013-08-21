@@ -41,6 +41,10 @@ from sys						import stdout
 from os							import name, path, remove, system
 
 
+def version():
+# This function tracks the application version.
+	return "v0.0.3-alpha"
+
 def backupVRF(vrfName, localPeer):
 # This function takes the VRF Name and Local Peer IP as determined during
 # the searchIndex() function, retrieves all matching VRFs from their respective
@@ -55,6 +59,7 @@ def backupVRF(vrfName, localPeer):
 		account = read_login()		# Prompt the user for login credentials
 
 	else:							# Else use username/password from configFile
+		# base64 decode password from the config file
 		account = Account(name=username, password=b64decode(password))
 		
 	print
@@ -69,20 +74,22 @@ def backupVRF(vrfName, localPeer):
 	socket.execute("terminal length 0")	# Disable page breaks in router output
 										# socket.autoinit() doesn't seem to disable
 										# page breaks; Using standard command instead
-	socket.execute("show running-config | section "+vrfName)	# Send command to router
+	# Send command to router to retrieve first part of VRF configuration
+	socket.execute("show running-config | section "+vrfName)
 
 	dated = datetime.now()				# Determine today's date
 	dated = dated.strftime('%Y%m%d')	# Format date as YYYYMMDD
 
-	outputFileName = backupDirectory+vrfName+'_Config_'+dated+'.txt'	# Define output filename based on hostname and date
+	# Define output filename based on hostname and date
+	outputFileName = backupDirectory+vrfName+'_Config_'+dated+'.txt'
 	
-	# Check to see if outputFileName currently exists.  If it does, tack an
+	# Check to see if outputFileName currently exists.  If it does, append an
 	# integer onto the end of the filename until outputFileName no longer exists
 	incrementFilename = 1
 	while fileExist(outputFileName):
 		outputFileName = backupDirectory+vrfName+'_Config_'+dated+'_'+str(incrementFilename)+'.txt'
 		incrementFilename = incrementFilename + 1
-		
+	
 	with open(outputFileName, 'w') as outputFile:
 		try:
 			outputFile.write(socket.response)	# Write contents of running config to output file
@@ -93,18 +100,18 @@ def backupVRF(vrfName, localPeer):
 			routeDistinguisher = sub(r'\srd\s', '', routeDistinguisher)
 			routeDistinguisher = sub(r':0', '', routeDistinguisher)
 			
+			# Send command to router to retrieve second part of VRF configuration
 			socket.execute("show running-config | section SMVPN "+routeDistinguisher)
 			outputFile.write(socket.response)	# Write contents of running config to output file
 		except IOError:
-			print "\n--> An error occurred opening "+outputFile+".\n"	
+			print
+			print "--> An error occurred opening "+outputFile+"."	
 
 	socket.send("exit\r")	# Send the "exit" command to log out of router gracefully
 	socket.close()			# Close SSH connection
 
 	print '--> '+vrfName+' backed up to '+outputFileName+'.'
 
-#@log_to(Logger())	# Logging decorator; Must precede buildIndex!
-					# Logging (to screen) not useful unless # threads > 1
 @autologin()		# Exscript login decorator; Must precede buildIndex!
 def buildIndex(job, host, socket):
 # This function builds the index file by connecting to the router and extracting all
@@ -125,7 +132,8 @@ def buildIndex(job, host, socket):
 		try:
 			outputFile.write(socket.response)	# Write contents of running config to output file
 		except IOError:
-			print "\n--> An error occurred opening "+indexFileTmp+".\n"	
+			print
+			print "--> An error occurred opening "+indexFileTmp+"."
 
 	socket.send("exit\r")	# Send the "exit" command to log out of router gracefully
 	socket.close()			# Close SSH connection
@@ -156,11 +164,13 @@ def cleanIndex(indexFileTmp, host):
 
 			# Exception: actual index file was not able to be opened
 			except IOError:
-				print "\n--> An error occurred opening "+indexFile+".\n"
+				print
+				print "--> An error occurred opening "+indexFile+"."
 
 	# Exception: temporary index file was not able to be opened
 	except IOError:
-		print "\n--> An error occurred opening "+indexFileTmp+".\n"
+		print
+		print "--> An error occurred opening "+indexFileTmp+"."
 	
 	# Always remove the temporary index file
 	finally:
@@ -218,9 +228,11 @@ def routerLogin():
 		hosts = get_hosts_from_file(routerFile,default_protocol='ssh2',remove_duplicates=True)
 
 		if username == '':				# If username is blank
+			print
 			account = read_login()		# Prompt the user for login credentials
 
 		elif password == '':			# If password is blank
+			print
 			account = read_login()		# Prompt the user for login credentials
 
 		else:							# Else use username/password from configFile
@@ -238,7 +250,8 @@ def routerLogin():
 
 	# Exception: router file was not able to be opened
 	except IOError:
-		print "\n--> An error occurred opening "+routerFile+".\n"
+		print
+		print "--> An error occurred opening "+routerFile+"."
 
 def searchIndex(fileName):
 # This function searches the index for search string provided by user and
@@ -263,6 +276,7 @@ def searchIndex(fileName):
 				if searchString in openedFile.read():
 					openedFile.seek(0)	# Reset file cursor position
 					searchFile = openedFile.readlines()	# Read each line in the file one at a time
+
 					for line in searchFile:
 						if searchString in line:
 							word = line.split(',')	# Split up matching line at the comments
@@ -272,11 +286,13 @@ def searchIndex(fileName):
 	
 				# Else: Search string was not found
 				else:
-					print "\n--> Your search string was not found in "+indexFile+".\n"
+					print
+					print "--> Your search string was not found in "+indexFile+"."
 	
 		# Exception: index file was not able to be opened
 		except IOError:
-			print "\n--> 2. An error occurred opening "+indexFile+".\n"
+			print
+			print "--> An error occurred opening "+indexFile+"."
 							 
 def upToDate(fileName):
 # This function checks the modify date of the index file
@@ -297,8 +313,9 @@ configFile='settings.cfg'
 # Determine OS in use and clear screen of previous output
 system('cls' if name=='nt' else 'clear')
 
-print "VRF Backup Tool v0.0.2-alpha"
-print "----------------------------"
+# PRINT PROGRAM BANNER
+print "VRF Backup Tool "+version()
+print "-"*(16+len(version()))
 
 try:
 # Try to open configFile
@@ -312,7 +329,8 @@ except IOError:
 			print
 			print "--> Config file not found; Creating "+configFile+"."
 			print
-			exampleFile.write("[account]\n#password is base64 encoded! Plain text passwords WILL NOT WORK!\n#Use website such as http://www.base64encode.org/ to encode your password\nusername=\npassword=\n\n")
+			exampleFile.write("## VRFBackupTool.py CONFIGURATION FILE ##\n#\n")
+			exampleFile.write("[account]\n#password is base64 encoded! Plain text passwords WILL NOT WORK!\n#Use website such as http://www.base64encode.org/ to encode your password\nusername=\npassword=\n#\n")
 			exampleFile.write("[VRFBackupTool]\n#Check your paths! Files will be created; Directories will not.\n#Bad directories may result in errors!\n#variable=C:\path\\to\\filename.ext\nrouterFile=routers.txt\nindexFile=index.txt\nindexFileTmp=index.txt.tmp\nbackupDirectory=\n")
 	except IOError:
 		print "\n--> An error occurred creating the example "+configFile+".\n"
@@ -345,8 +363,7 @@ finally:
 			else: # if upToDate(indexFile):
 				# Update indexFile?
 				print
-				if confirm("The index does not appear up-to-date.\n\nWould you like to update it? [Y/n] "):
-					print
+				if confirm("--> The index does not appear up-to-date.\n\nWould you like to update it? [Y/n] "):
 					# Remove old indexFile to prevent duplicates from being added by appends
 					remove(indexFile)
 					routerLogin()
@@ -361,20 +378,19 @@ finally:
 			searchIndex(indexFile)
 			
 	else: # if fileExist(routerFile):
+		# Step 10: Create example routerFile and exit program
+		# END PROGRAM	
 		try:
 			with open (routerFile, 'w') as exampleFile:
+				exampleFile.write("## VRFBackupTool.py ROUTER FILE ##\n#\n")
+				exampleFile.write("#Enter a list of hostnames or IP Addresses, one per line.\n#For example:\n")
 				exampleFile.write("192.168.1.1\n192.168.1.2\nRouterA\nRouterB\nRouterC\netc...")
-				print
-				print "Required file "+routerFile+" not found; One has been created for you."
-				print "This file must contain a list, one per line, of Hostnames or IP addresses the"
-				print "application will then connect to download the running-config."
-				print
+				print "--> Router file not found; Creating "+routerFile+"."
+				print "    Edit this file and restart the application."
 		except IOError:
-			print
-			print "Required file "+routerFile+" not found."
+			print "--> Required file "+routerFile+" not found; An error has occurred creating "+routerFile+"."
 			print "This file must contain a list, one per line, of Hostnames or IP addresses the"
 			print "application will then connect to download the running-config."
-			print
 
 print
 print "--> Done."
