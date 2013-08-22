@@ -1,6 +1,11 @@
 # VRFBackupTool.py #
 ---
 
+## VRFBackupTool v0.0.4-alpha (2013-08-22) ##
+* Added whitespace to the end of the "show running-config | section SMVPN"
+  command to prevent incorrect matches.  (Without the space at the end, a
+  search for "3" would also return "31" or "300", etc.)
+
 ## VRFBackupTool v0.0.3-alpha (2013-08-20) ##
 * Adjusted output spacing (removing/moving 'print' statements)
 * Added additional comments to code, configFile, routerFile.
