@@ -21,7 +21,7 @@
 import base64		# Required to decode password
 import datetime		# Required for date format
 import ConfigParser # Required for configuration file
-import Exscript		# Required for SSH, queue & logging functionality
+import Exscript		# Required for SSH, queue functionality
 import re			# Required for REGEX operations
 import sys			# Required for printing without newline
 import os			# Required to determine OS of host
@@ -32,10 +32,8 @@ from datetime                   import datetime
 from Exscript                   import Account, Queue, Host, Logger
 from Exscript.protocols 		import SSH2
 from Exscript.util.file			import get_hosts_from_file
-from Exscript.util.log          import log_to
 from Exscript.util.decorator    import autologin
 from Exscript.util.interact     import read_login
-from Exscript.util.report		import status,summarize
 from re							import search, sub
 from sys						import stdout
 from os							import name, path, remove, system
@@ -43,7 +41,7 @@ from os							import name, path, remove, system
 
 def version():
 # This function tracks the application version.
-	return "v0.0.4-alpha"
+	return "v0.0.5-alpha"
 
 def backupVRF(vrfName, localPeer):
 # This function takes the VRF Name and Local Peer IP as determined during
@@ -245,9 +243,6 @@ def routerLogin():
 		queue.run(hosts, buildIndex)			# Create queue using provided hosts
 		queue.shutdown()						# End all running threads and close queue
 		
-		#print status(Logger())	# Print current % status of operation to screen
-								# Status not useful unless # threads > 1
-
 	# Exception: router file was not able to be opened
 	except IOError:
 		print
@@ -311,17 +306,24 @@ def upToDate(fileName):
 configFile='settings.cfg'
 
 # Determine OS in use and clear screen of previous output
-system('cls' if name=='nt' else 'clear')
+if name == 'nt':
+	system("cls")
+else:
+	system("clear")
 
 # PRINT PROGRAM BANNER
 print "VRF Backup Tool "+version()
 print "-"*(16+len(version()))
 
+# START PROGRAM
+# Steps below refer to documented program flow in VRFBackupTool.png
+# Step 1: Check for presence of settings.cfg file
 try:
 # Try to open configFile
 	with open(configFile, 'r'):
 		print
 	
+# Step 2: Create example settings.cfg file
 except IOError:
 # Except if configFile does not exist, create an example configFile to work from
 	try:
@@ -335,6 +337,7 @@ except IOError:
 	except IOError:
 		print "\n--> An error occurred creating the example "+configFile+".\n"
 
+# Step 3: Open settings.cfg file and read options
 finally:
 # Finally, using the provided configFile (or example created), pull values
 # from the config and login to the router(s)
@@ -352,34 +355,48 @@ finally:
 		if backupDirectory[-1:] != "\\":
 			backupDirectory = backupDirectory+"\\"
 			
+	# Step 4: Check for presence of routerFile
 	# Does routerFile exist?
 	if fileExist(routerFile):
+		# Step 5: Check for presence of indexFile file
 		# Does indexFile exist?
 		if fileExist(indexFile):
+			# Step 6: Check date of file
 			# File created today?
 			if upToDate(indexFile):
+				# Step 7: Prompt user to provide backup criteria
+				# Step 8: Backup VRF configuration, if any and END PROGRAM
 				print("--> Index found and appears up to date.")
 				searchIndex(indexFile)
 			else: # if upToDate(indexFile):
+				# Step 9: Ask user if they would like to update indexFile
 				# Update indexFile?
 				print
 				if confirm("--> The index does not appear up-to-date.\n\nWould you like to update it? [Y/n] "):
+					# Step 10: Prompt user for username & password (if not stored in settings.cfg)
+					# Step 11: Login to routers and retrieve VRF, Peer information
+					# Step 12: Sort indexFile to remove unnecessary data
+					# GOTO Step 2 (Check for presence of indexFile file)
 					# Remove old indexFile to prevent duplicates from being added by appends
 					remove(indexFile)
 					routerLogin()
 					print
 					searchIndex(indexFile)
 				else: # if confirm("Would you like to update the index? [Y/n] "):
+					# GOTO Step 7: (Prompt user to provide search string)
+					# Step 8: Backup VRF configuration, if any and END PROGRAM
 					searchIndex(indexFile)
 		else: # if fileExist(indexFile):
+			# Step 10: Prompt user for username & password (if not stored in settings.cfg)
+			# Step 11: Login to routers and retrieve VRF, Peer information
+			# Step 12: Sort indexFile to remove unnecessary data
+			# GOTO Step 2 (Check for presence of indexFile file)
 			print("--> No index file found, we will create one now.")
 			routerLogin()
 			print
 			searchIndex(indexFile)
-			
 	else: # if fileExist(routerFile):
-		# Step 10: Create example routerFile and exit program
-		# END PROGRAM	
+		# Step 13: Create example routerFile and exit program and END PROGRAM	
 		try:
 			with open (routerFile, 'w') as exampleFile:
 				exampleFile.write("## VRFBackupTool.py ROUTER FILE ##\n#\n")

@@ -2,7 +2,6 @@
 ----------
 
 ## Needs Fixing ##
-[ ] Write README.md
 
 ## New Features ##
 

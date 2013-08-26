@@ -1,7 +1,11 @@
 # VRFBackupTool.py #
 ---
  
-## VRFBackupTool v0.0.4-alpha (2013-08-22) ##
+## VRFBackupTool v0.0.5-alpha (2013-08-26) ##
+* Created README.md, VRFBackupTool.png
+* Updated code to remove unused modules and add additional comments.
+ 
+ ## VRFBackupTool v0.0.4-alpha (2013-08-22) ##
 * Added whitespace to the end of the "show running-config | section SMVPN"
   command to prevent incorrect matches.  (Without the space at the end, a
   search for "3" would also return "31" or "300", etc.)
