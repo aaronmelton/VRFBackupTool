@@ -62,13 +62,20 @@ Exscript module [https://github.com/knipknap/exscript/](https://github.com/knipk
    the indexFile.
    * If the file was created today, the application will proceed to Step 7.
    * If the file was not created today, the application will proceed to Step 9.
-7. The application will ask the user to provide the backup criteria; Either
-   the VRF name or Peer IP Address of the VPN tunnel to locate.  Continue to
-   Step 8.
-8. The application will open the indexFile as read-only and search through the
-   file.  If any values are found, the application will log into each router
-   and back up the VRF configuration for each value found.  The application 
-   will then close the indexFile and exit (END).
+7. The application will ask the user to provide the search criteria; Either
+   the VRF name or Peer IP Address of the VPN tunnel to locate.  The application 
+   will open the indexFile as read-only and search through the file.
+   * If the search criteria was not found, exit program (END)
+   * If the search criteria was found, continue to Step 8.
+8. The application will ask the user for their username and password, should
+   these values not be pre-configured in the `settings.cfg` file and log into
+   each router containing the search string.  Using the
+   `show running-config | section <VRFName>` and 
+   `show running-config | section SMVPN <RouerDistinguisher>` commands, the
+   application will backup the VRF configuration to a file in a directory
+   specified in `settings.cfg`.  Should this filename already exist, the
+   application will continue to append an integer to the end of the filename
+   until it is no longer attmepting to overwrite an existing file.
 9. The application will ask the user if they would like to update the indexFile.
    * If the user does not want to update the indexFile, the application will 
    proceed to Step 7.
