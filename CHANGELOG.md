@@ -1,6 +1,10 @@
 # VRFBackupTool.py #
 ---
  
+## VRFBackupTool v0.0.6-alpha (2013-08-28) ##
+* Added functionality to specify configFile from the command line.
+* Updated README.md
+
 ## VRFBackupTool v0.0.5-alpha (2013-08-26) ##
 * Created README.md, VRFBackupTool.png
 * Updated code to remove unused modules and add additional comments.

@@ -44,7 +44,7 @@ Exscript module [https://github.com/knipknap/exscript/](https://github.com/knipk
 
 1. Upon execution, the application will search its parent directory for the
    presence of a file named `settings.cfg`.
-   * If this file does not exist, the application will proceed to Step 2.
+   * If this file does not exist, the application will continue to Step 2.
    * If this file does exist, the application will proceed to Step 3.
 2. The application will create a `settings.cfg` file with default values
    and continue to Step 3.
@@ -52,15 +52,15 @@ Exscript module [https://github.com/knipknap/exscript/](https://github.com/knipk
    values into variables and continue to Step 4.
 4. The application will search its parent directory for the presence of a file
    defined by the `routerFile` variable in `settings.cfg`.
-   * If this file does exist, the application will proceed to Step 5.
+   * If this file does exist, the application will continue to Step 5.
    * If this file does not exist, the application will proceed to Step 13.
 5. The application will search its parent directory for the presence of a file
    defined by the `indexFile` variable in `settings.cfg`.
-   * If this file does exist, the application will proceed to Step 6.
+   * If this file does exist, the application will continue to Step 6.
    * If this file does not exist, the application will proceed to Step 10.
 6. The application will check the timestamp of the last modification made to
    the indexFile.
-   * If the file was created today, the application will proceed to Step 7.
+   * If the file was created today, the application will continue to Step 7.
    * If the file was not created today, the application will proceed to Step 9.
 7. The application will ask the user to provide the search criteria; Either
    the VRF name or Peer IP Address of the VPN tunnel to locate.  The application 
@@ -79,7 +79,7 @@ Exscript module [https://github.com/knipknap/exscript/](https://github.com/knipk
 9. The application will ask the user if they would like to update the indexFile.
    * If the user does not want to update the indexFile, the application will 
    proceed to Step 7.
-   * If the user wants to update the indexFile, the application will proceed 
+   * If the user wants to update the indexFile, the application will continue 
    to Step 10.
 10. The application will ask the user for their username and password, should
     these values not be pre-configured in the `settings.cfg` file.  These
