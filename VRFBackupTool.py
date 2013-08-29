@@ -34,11 +34,13 @@ from datetime                   import datetime
 from Exscript                   import Account, Queue, Host, Logger
 from Exscript.protocols 		import SSH2
 from Exscript.util.file			import get_hosts_from_file
+from Exscript.util.log          import log_to
 from Exscript.util.decorator    import autologin
 from Exscript.util.interact     import read_login
+from Exscript.util.report		import status,summarize
 from re							import search, sub
 from sys						import stdout
-from os							import name, path, remove, system
+from os							import makedirs, name, path, remove, system
 
 
 class Application:
@@ -46,11 +48,11 @@ class Application:
 # details across all my applications.  Also used to display information when
 # application is executed with "--help" argument.
 	author = "Aaron Melton <aaron@aaronmelton.com>"
-	date = "(2013-08-28)"
+	date = "(2013-08-29)"
 	description = "Backs up the (VRF) VPN tunnel configuration on a Cisco router."
 	name = "VRFBackupTool.py"
 	url = "https://github.com/aaronmelton/VRFBackupTool"
-	version = "v0.0.6-alpha"
+	version = "v0.0.7-alpha"
 
 
 def backupVRF(vrfName, localPeer):
@@ -58,48 +60,48 @@ def backupVRF(vrfName, localPeer):
 # the searchIndex() function, retrieves all matching VRFs from their respective
 # routers and writes the config to a file.
 
-	if username == '':				# If username is blank
-		print
-		account = read_login()		# Prompt the user for login credentials
-	
-	elif password == '':			# If password is blank
-		print
-		account = read_login()		# Prompt the user for login credentials
-
-	else:							# Else use username/password from configFile
-		# base64 decode password from the config file
-		account = Account(name=username, password=b64decode(password))
-		
-	print
-	print "--> Logging into "+localPeer+"..."
-	
-	socket = SSH2()						# Set connection type to SSH2
-	socket.connect(localPeer)			# Open connection to router
-	socket.login(account)				# Authenticate on the remote host
-	
-	print "--> Backing up "+vrfName+"..."
-	
-	socket.execute("terminal length 0")	# Disable page breaks in router output
-										# socket.autoinit() doesn't seem to disable
-										# page breaks; Using standard command instead
-	# Send command to router to retrieve first part of VRF configuration
-	socket.execute("show running-config | section "+vrfName)
-
 	dated = datetime.now()				# Determine today's date
 	dated = dated.strftime('%Y%m%d')	# Format date as YYYYMMDD
 
 	# Define output filename based on hostname and date
-	outputFileName = backupDirectory+vrfName+'_Config_'+dated+'.txt'
+	outputFilename = backupDirectory+vrfName+'_Config_'+dated+'.txt'
 	
-	# Check to see if outputFileName currently exists.  If it does, append an
-	# integer onto the end of the filename until outputFileName no longer exists
+	# Check to see if outputFilename currently exists.  If it does, append an
+	# integer onto the end of the filename until outputFilename no longer exists
 	incrementFilename = 1
-	while fileExist(outputFileName):
-		outputFileName = backupDirectory+vrfName+'_Config_'+dated+'_'+str(incrementFilename)+'.txt'
+	while fileExist(outputFilename):
+		outputFilename = backupDirectory+vrfName+'_Config_'+dated+'_'+str(incrementFilename)+'.txt'
 		incrementFilename = incrementFilename + 1
 	
-	with open(outputFileName, 'w') as outputFile:
+	with open(outputFilename, 'w') as outputFile:
 		try:
+			if username == '':				# If username is blank
+				print
+				account = read_login()		# Prompt the user for login credentials
+			
+			elif password == '':			# If password is blank
+				print
+				account = read_login()		# Prompt the user for login credentials
+		
+			else:							# Else use username/password from configFile
+				# base64 decode password from the config file
+				account = Account(name=username, password=b64decode(password))
+				
+			print
+			print "--> Logging into "+localPeer+"..."
+			
+			socket = SSH2()						# Set connection type to SSH2
+			socket.connect(localPeer)			# Open connection to router
+			socket.login(account)				# Authenticate on the remote host
+			
+			print "--> Backing up "+vrfName+"..."
+			
+			socket.execute("terminal length 0")	# Disable page breaks in router output
+												# socket.autoinit() doesn't seem to disable
+												# page breaks; Using standard command instead
+			# Send command to router to retrieve first part of VRF configuration
+			socket.execute("show running-config | section "+vrfName)
+
 			outputFile.write(socket.response)	# Write contents of running config to output file
 			
 			# Use REGEX to locate Route Distinguisher in results from router
@@ -111,15 +113,19 @@ def backupVRF(vrfName, localPeer):
 			# Send command to router to retrieve second part of VRF configuration
 			socket.execute("show running-config | section SMVPN "+routeDistinguisher+" ")
 			outputFile.write(socket.response)	# Write contents of running config to output file
+		
+			socket.send("exit\r")	# Send the "exit" command to log out of router gracefully
+			socket.close()			# Close SSH connection
+
+		# Exception: outputFile file could not be opened
 		except IOError:
 			print
 			print "--> An error occurred opening "+outputFile+"."	
 
-	socket.send("exit\r")	# Send the "exit" command to log out of router gracefully
-	socket.close()			# Close SSH connection
+	print '--> '+vrfName+' backed up to '+outputFilename+'.'
 
-	print '--> '+vrfName+' backed up to '+outputFileName+'.'
-
+logger = Logger()	# Log stuff
+@log_to(logger)		# Logging decorator; Must precede buildIndex!
 @autologin()		# Exscript login decorator; Must precede buildIndex!
 def buildIndex(job, host, socket):
 # This function builds the index file by connecting to the router and extracting all
@@ -246,13 +252,34 @@ def routerLogin():
 		else:							# Else use username/password from configFile
 			account = Account(name=username, password=b64decode(password))
 		
-		queue = Queue(verbose=0, max_threads=1)	# Minimal message from queue, 1 threads
+		# Minimal message from queue, 1 threads
+		queue = Queue(verbose=0, max_threads=1, stderr=(open(os.devnull, 'w')))
 		queue.add_account(account)				# Use supplied user credentials
 		print
 		stdout.write("--> Building index...") 	# Print without trailing newline
 		queue.run(hosts, buildIndex)			# Create queue using provided hosts
 		queue.shutdown()						# End all running threads and close queue
 		
+		# Define log filename based on date
+		logFilename = logFileDirectory+'VRFBackupTool_'+date+'.log'
+
+		# Check to see if logFilename currently exists.  If it does, append an
+		# integer onto the end of the filename until logFilename no longer exists
+		incrementLogFilename = 1
+		while fileExist(logFilename):
+			logFilename = logFileDirectory+'VRFBackupTool_'+date+'_'+str(incrementLogFilename)+'.log'
+			incrementLogFilename = incrementLogFilename + 1
+
+		# Write log results to logFile
+		with open(logFilename, 'w') as outputLogFile:
+			try:
+				outputLogFile.write(summarize(logger))
+
+			# Exception: router file was not able to be opened
+			except IOError:
+				print
+				print "--> An error occurred opening "+logFileDirectory+logFile+"."
+
 	# Exception: router file could not be opened
 	except IOError:
 		print
@@ -352,7 +379,7 @@ except IOError:
 			print
 			exampleFile.write("## VRFBackupTool.py CONFIGURATION FILE ##\n#\n")
 			exampleFile.write("[account]\n#password is base64 encoded! Plain text passwords WILL NOT WORK!\n#Use website such as http://www.base64encode.org/ to encode your password\nusername=\npassword=\n#\n")
-			exampleFile.write("[VRFBackupTool]\n#Check your paths! Files will be created; Directories will not.\n#Bad directories may result in errors!\n#variable=C:\path\\to\\filename.ext\nrouterFile=routers.txt\nindexFile=index.txt\nindexFileTmp=index.txt.tmp\nbackupDirectory=\n")
+			exampleFile.write("[VRFBackupTool]#variable=C:\path\\to\\filename.ext\nrouterFile=routers.txt\nindexFile=index.txt\nindexFileTmp=index.txt.tmp\nlogFileDirectory=\nbackupDirectory=\n")
 
 	# Exception: file could not be created
 	except IOError:
@@ -369,13 +396,24 @@ finally:
 	routerFile = config.get('VRFBackupTool', 'routerFile')
 	indexFile = config.get('VRFBackupTool', 'indexFile')
 	indexFileTmp = config.get('VRFBackupTool', 'indexFileTmp')
+	logFileDirectory = config.get('VRFBackupTool', 'logFileDirectory')
 	backupDirectory = config.get ('VRFBackupTool', 'backupDirectory')
 	
+	# If logFileDirectory does not contain trailing backslash, append one
+	if logFileDirectory != '':
+		if logFileDirectory[-1:] != "\\":
+			logFileDirectory = logFileDirectory+"\\"
+			if not path.exists(logFileDirectory): makedirs(logFileDirectory)
 	# If backupDirectory does not contain trailing backslash, append one
 	if backupDirectory != '':
 		if backupDirectory[-1:] != "\\":
 			backupDirectory = backupDirectory+"\\"
+			if not path.exists(backupDirectory): makedirs(backupDirectory)
 			
+	# Define 'date' variable for use in the output filename
+	date = datetime.now()	# Determine today's date
+	date = date.strftime('%Y%m%d')	# Format date as YYYYMMDD
+
 	# Step 4: Check for presence of routerFile
 	# Does routerFile exist?
 	if fileExist(routerFile):
