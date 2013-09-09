@@ -1,5 +1,14 @@
 # VRFBackupTool.py #
 ---
+
+## VRFBackupTool v0.0.8-alpha (2013-09-09) ##
+* Corrected makedirs() functionality: Directories with a trailing backslash
+  in the config file were not being created thereby causing the application
+  to fail.
+* Moved logFileDirectory & backupDirectory makedirs() function such that the
+  directory would only be created if/when the parent function was called
+  instead of creating both directories whenever the application executed.
+* Removed 'dated' variable, which was a duplicate of global variable 'date'
  
 ## VRFBackupTool v0.0.7-alpha (2013-08-29) ##
 * Updated the backupVRF function so that the application will not log into
