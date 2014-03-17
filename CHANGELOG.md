@@ -1,6 +1,12 @@
 # VRFBackupTool.py #
 ---
 
+## VRFBackupTool v0.0.9-alpha (2014-03-17) ##
+* Replaced tab with four spaces.
+* Replaced ' with " to be consistent throughout the file.
+* Corrected problem where application would fail if logFileDirectory or 
+  backupFileDirectory in settings.cfg was blank.
+
 ## VRFBackupTool v0.0.8-alpha (2013-09-09) ##
 * Corrected makedirs() functionality: Directories with a trailing backslash
   in the config file were not being created thereby causing the application
