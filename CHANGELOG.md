@@ -1,6 +1,10 @@
 # VRFBackupTool.py #
 ---
 
+## VRFBackupTool v0.0.10-alpha (2015-02-16) ##
+* Made a minor correction to code to ensure compatability with 15.X train of
+  Cisco IOS.
+
 ## VRFBackupTool v0.0.9-alpha (2014-03-17) ##
 * Replaced tab with four spaces.
 * Replaced ' with " to be consistent throughout the file.
